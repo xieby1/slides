@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<!-- Export by pandoc -D revealjs, pandoc version 2.5 -->
+<!-- pandoc-types 1.17.5.4, texmath 0.11.2.2, skylighting 0.7.7 -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="author" content="谢本壹 2022年3月22日">
+  <title>二进制翻译&amp;算法</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//css/reveal.css">
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//css/theme/white.css" id="theme">
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement( 'link' );
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = window.location.search.match( /print-pdf/gi ) ? 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//css/print/pdf.css' : 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//css/print/paper.css';
+    document.getElementsByTagName( 'head' )[0].appendChild( link );
+  </script>
+  <!--[if lt IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//lib/js/html5shiv.js"></script>
+  <![endif]-->
+  <style>
+  /* override default border color */
+  .reveal section img {
+      border: transparent;
+  }
+
+  /* no margin in styled code div, the same to unstyled code */
+  div.sourceCode {
+      margin: 0;
+  }
+  .reveal pre {
+      display: flex;
+      justify-content: center;
+  }
+
+  .reveal pre code {
+      max-height: none;
+  }
+
+  a.sourceLine {
+      /* styled code line is higher than unstyled, make them the same */
+      line-height: 0;
+  }
+
+  #TOC > ul {
+      /* multiple column in first level TOC */
+      column-width: 290px;
+      width: 100%;
+      column-rule-style: solid;
+      /* no margin in first level TOC */
+      margin: 0 0 0 0;
+  }
+
+  #TOC ul {
+      /* no bullet */
+      list-style-type: none;
+      /* no margin, no padding in TOC ul */
+      margin-block-start: 0;
+      margin-block-end: 0;
+      padding-inline-start: 0;
+  }
+
+  table {
+      /* 42px / sprt 2 */
+      font-size: 30px;
+  }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide">
+  <h1 class="title">二进制翻译&amp;算法</h1>
+  <p class="author">谢本壹 2022年3月22日</p>
+  <p class="date">微处理器研究中心</p>
+</section>
+<section id="TOC">
+<ul>
+<li><a href="#/背景介绍"><span class="toc-section-number">1</span> 背景介绍</a>
+<ul>
+<li><a href="#/研究领域"><span class="toc-section-number">1.1</span> 研究领域</a></li>
+<li><a href="#/研究对象"><span class="toc-section-number">1.2</span> 研究对象</a></li>
+<li><a href="#/核心内容"><span class="toc-section-number">1.3</span> 核心内容</a></li>
+<li><a href="#/报告来源"><span class="toc-section-number">1.4</span> 报告来源</a></li>
+</ul></li>
+<li><a href="#/基于学习的翻译"><span class="toc-section-number">2</span> 基于学习的翻译</a>
+<ul>
+<li><a href="#/现状"><span class="toc-section-number">2.1</span> 现状</a></li>
+<li><a href="#/问题"><span class="toc-section-number">2.2</span> 问题</a></li>
+<li><a href="#/优化方案"><span class="toc-section-number">2.3</span> 优化方案</a></li>
+<li><a href="#/挑战"><span class="toc-section-number">2.4</span> 挑战</a></li>
+</ul></li>
+<li><a href="#/语义验证"><span class="toc-section-number">3</span> 语义验证</a>
+<ul>
+<li><a href="#/映射操作数"><span class="toc-section-number">3.1</span> 映射操作数</a></li>
+<li><a href="#/符号执行"><span class="toc-section-number">3.2</span> 符号执行</a></li>
+<li><a href="#/求解"><span class="toc-section-number">3.3</span> 求解</a></li>
+</ul></li>
+<li><a href="#/求解方法"><span class="toc-section-number">4</span> 求解方法</a>
+<ul>
+<li><a href="#/smt"><span class="toc-section-number">4.1</span> SMT</a></li>
+<li><a href="#/smt解法"><span class="toc-section-number">4.2</span> SMT解法</a></li>
+<li><a href="#/sat解法"><span class="toc-section-number">4.3</span> SAT解法</a></li>
+<li><a href="#/smt求解器"><span class="toc-section-number">4.4</span> SMT求解器</a></li>
+</ul></li>
+<li><a href="#/谢谢"><span class="toc-section-number">5</span> 谢谢</a>
+<ul>
+<li><a href="#/二进制翻译算法"><span class="toc-section-number">5.1</span> 二进制翻译&amp;算法</a></li>
+</ul></li>
+</ul>
+</section>
+
+<section>
+<section id="背景介绍" class="title-slide slide level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> 背景介绍</h1>
+
+</section>
+<section id="研究领域" class="slide level2" data-number="1.1">
+<h2 data-number="1.1"><span class="header-section-number">1.1</span> 研究领域</h2>
+<p>微处理器研究中心@龙芯</p>
+<ul>
+<li>系统软件设计🤓</li>
+<li>…</li>
+<li>芯片物理设计</li>
+</ul>
+<p>偏工程实现的课题组</p>
+</section>
+<section id="研究对象" class="slide level2" data-number="1.2">
+<h2 data-number="1.2"><span class="header-section-number">1.2</span> 研究对象</h2>
+<p>二进制翻译</p>
+<p><img src="./bt.svg" style="zoom: 200%;"></p>
+<ul>
+<li>被翻译平台(arm) : 客户(guest)</li>
+<li>翻译平台(x86) : 宿主(host)</li>
+</ul>
+</section>
+<section id="核心内容" class="slide level2" data-number="1.3">
+<h2 data-number="1.3"><span class="header-section-number">1.3</span> 核心内容</h2>
+<p>arm机器指令 =&gt; x86机器指令</p>
+<ul>
+<li>add r1, r1, r0 =&gt; addl %eax, %edx</li>
+<li>sub r1, r1, #1 =&gt; subl $0x1, %edx</li>
+</ul>
+</section>
+<section id="报告来源" class="slide level2" data-number="1.4">
+<h2 data-number="1.4"><span class="header-section-number">1.4</span> 报告来源</h2>
+<ul>
+<li>2018</li>
+<li>《Enhancing Cross-ISA DBT Through Automatically Learned Translation Rules》</li>
+<li>Wenwen Wang</li>
+<li>ASPLOS</li>
+<li>Citations: 15</li>
+</ul>
+</section></section>
+<section>
+<section id="基于学习的翻译" class="title-slide slide level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> 基于学习的翻译</h1>
+
+</section>
+<section id="现状" class="slide level2" data-number="2.1">
+<h2 data-number="2.1"><span class="header-section-number">2.1</span> 现状</h2>
+<p>一对多翻译</p>
+<ul>
+<li>一条guest指令</li>
+<li>多条中间指令</li>
+<li>优化</li>
+<li>多条host指令</li>
+</ul>
+</section>
+<section id="问题" class="slide level2" data-number="2.2">
+<h2 data-number="2.2"><span class="header-section-number">2.2</span> 问题</h2>
+<p>指令膨胀</p>
+<ul>
+<li>算逻指令：1x</li>
+<li>访存指令：10~100x</li>
+</ul>
+<p>效率不高</p>
+</section>
+<section id="优化方案" class="slide level2" data-number="2.3">
+<h2 data-number="2.3"><span class="header-section-number">2.3</span> 优化方案</h2>
+<p>多对多翻译</p>
+<p>利用编译器建立映射</p>
+<p><img src="./multi2multi.svg" style="zoom: 200%;"></p>
+</section>
+<section id="挑战" class="slide level2" data-number="2.4">
+<h2 data-number="2.4"><span class="header-section-number">2.4</span> 挑战</h2>
+<p>如何验证语义相同？</p>
+</section></section>
+<section>
+<section id="语义验证" class="title-slide slide level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> 语义验证</h1>
+
+</section>
+<section id="映射操作数" class="slide level2" data-number="3.1">
+<h2 data-number="3.1"><span class="header-section-number">3.1</span> 映射操作数</h2>
+<p>基于经验</p>
+<ul>
+<li>只考虑同类型操作数（共3类，寄存器、内存、立即数）</li>
+<li>立即数配合算术逻辑运算</li>
+<li>一个寄存器至多映射映射一次</li>
+</ul>
+<p><img src="./para.svg" style="zoom: 200%;"></p>
+</section>
+<section id="符号执行" class="slide level2" data-number="3.2">
+<h2 data-number="3.2"><span class="header-section-number">3.2</span> 符号执行</h2>
+<p>简化版（忽略位长）</p>
+<pre><code>r1_output  = r0 + r1 - 1
+edx_output = eax + edx + (-1)</code></pre>
+<p><img src="./para.svg" style="zoom: 200%;"></p>
+</section>
+<section id="求解" class="slide level2" data-number="3.3">
+<h2 data-number="3.3"><span class="header-section-number">3.3</span> 求解</h2>
+<pre><code>∀ x,y ∈ int32
+┌─r0 = eax = x
+├─r1 = edx = y
+└─r0 + r1 -1 = eax + edx + (-1)</code></pre>
+<p>若成立，则学习到一条翻译规则</p>
+</section></section>
+<section>
+<section id="求解方法" class="title-slide slide level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> 求解方法</h1>
+
+</section>
+<section id="smt" class="slide level2" data-number="4.1">
+<h2 data-number="4.1"><span class="header-section-number">4.1</span> SMT</h2>
+<p>求解公式是否可满足的问题</p>
+<p>Satisfiability Modulo Theories (SMT)</p>
+<pre><code>∀ x,y ∈ int32
+┌─r0 = eax = x
+├─r1 = edx = y
+└─r0 + r1 -1 = eax + edx + (-1)</code></pre>
+</section>
+<section id="smt解法" class="slide level2" data-number="4.2">
+<h2 data-number="4.2"><span class="header-section-number">4.2</span> SMT解法</h2>
+<p>整数计算退化布尔逻辑（决策问题）</p>
+<ul>
+<li>Satisfiability Modulo Theories (SMT)
+<ul>
+<li>整数, np-hard</li>
+</ul></li>
+<li>boolean SATisfiability problem (SAT)
+<ul>
+<li>布尔, np-complete</li>
+</ul></li>
+</ul>
+</section>
+<section id="sat解法" class="slide level2" data-number="4.3">
+<h2 data-number="4.3"><span class="header-section-number">4.3</span> SAT解法</h2>
+<ul>
+<li>与、或、非、蕴含、括号的逻辑公式可转换为</li>
+<li>合取范式（Conjunctive normal form，CNF）</li>
+</ul>
+<p><span class="math display">(<em>a</em>∨<em>b</em>∨¬<em>c</em>) ∧ (¬<em>d</em>∨<em>e</em>∨¬<em>f</em>∨<em>g</em>) ∧ (¬<em>h</em>∨<em>i</em>∨<em>j</em>) ∧ … ∧ (<em>k</em>∨<em>l</em>∨¬<em>m</em>)</span></p>
+<ul>
+<li>DPLL算法求解
+<ul>
+<li>剪枝+深度优先</li>
+</ul></li>
+</ul>
+</section>
+<section id="smt求解器" class="slide level2" data-number="4.4">
+<h2 data-number="4.4"><span class="header-section-number">4.4</span> SMT求解器</h2>
+<p>比如</p>
+<ul>
+<li>Z3 <span class="citation" data-cites="microsoft">@microsoft</span></li>
+<li>CVC</li>
+<li>…</li>
+</ul>
+<p>描述SMT问题的语言标准：SMT-LIB</p>
+<p>每年SMT-COMP比赛</p>
+</section></section>
+<section>
+<section id="谢谢" class="title-slide slide level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> 谢谢</h1>
+
+</section>
+<section id="二进制翻译算法" class="slide level2" data-number="5.1">
+<h2 data-number="5.1"><span class="header-section-number">5.1</span> 二进制翻译&amp;算法</h2>
+<p>谢本壹🤓</p>
+<p>2022年3月22日</p>
+<p>微处理器研究中心</p>
+</section></section>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//lib/js/head.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//js/reveal.js"></script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        hash: true,
+        // Display controls in the bottom right corner
+        controls: true,
+        // Display a presentation progress bar
+        progress: true,
+        // Display the page number of the current slide
+        slideNumber: false,
+        // Push each slide change to the browser history
+        history: false,
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+        // Enable the slide overview mode
+        overview: true,
+        // Vertical centering of slides
+        center: true,
+        // Enables touch navigation on devices with touch input
+        touch: true,
+        // Loop the presentation
+        loop: false,
+        // Change the presentation direction to be RTL
+        rtl: false,
+        // Turns fragments on and off globally
+        fragments: true,
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+        // Transition style
+        transition: 'slide', // none/fade/slide/convex/concave/zoom
+        // Transition speed
+        transitionSpeed: 'default', // default/fast/slow
+        // Transition style for full page slide backgrounds
+        backgroundTransition: 'fade', // none/fade/slide/convex/concave/zoom
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1200,
+        height: 700,
+
+        // Optional reveal.js plugins
+        dependencies: [
+          { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//lib/js/classList.js', condition: function() { return !document.body.classList; } },
+          { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//plugin/zoom-js/zoom.js', async: true },
+          { src: 'https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.9.2//plugin/notes/notes.js', async: true }
+        ]
+      });
+    </script>
+    </body>
+</html>
